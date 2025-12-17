@@ -32,7 +32,7 @@ export default function Index() {
   useEffect(() => {
     const interval = setInterval(() => {
       setEnergy(prev => Math.min(prev + 1, maxEnergy));
-    }, 100);
+    }, 1000);
     return () => clearInterval(interval);
   }, [maxEnergy]);
 
