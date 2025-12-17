@@ -1,281 +1,314 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
-import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface Tender {
+  id: number;
+  title: string;
+  customer: string;
+  region: string;
+  budget: number;
+  deadline: string;
+  status: 'active' | 'ending-soon' | 'closed';
+  category: string;
+  participantsCount: number;
+}
+
+const mockTenders: Tender[] = [
+  {
+    id: 1,
+    title: 'Поставка новогодних подарков для детей сотрудников',
+    customer: 'ООО "Газпром Нефть"',
+    region: 'Санкт-Петербург',
+    budget: 2500000,
+    deadline: '2025-12-20',
+    status: 'active',
+    category: 'Детские подарки',
+    participantsCount: 12,
+  },
+  {
+    id: 2,
+    title: 'Закупка новогодних подарочных наборов для партнеров',
+    customer: 'ПАО "Сбербанк"',
+    region: 'Москва',
+    budget: 5000000,
+    deadline: '2025-12-18',
+    status: 'ending-soon',
+    category: 'Корпоративные подарки',
+    participantsCount: 24,
+  },
+  {
+    id: 3,
+    title: 'Новогодние подарки для многодетных семей',
+    customer: 'Администрация Краснодарского края',
+    region: 'Краснодар',
+    budget: 1800000,
+    deadline: '2025-12-22',
+    status: 'active',
+    category: 'Социальные программы',
+    participantsCount: 8,
+  },
+  {
+    id: 4,
+    title: 'Подарочные наборы для новогоднего корпоратива',
+    customer: 'ООО "Яндекс"',
+    region: 'Москва',
+    budget: 3200000,
+    deadline: '2025-12-25',
+    status: 'active',
+    category: 'Корпоративные подарки',
+    participantsCount: 15,
+  },
+  {
+    id: 5,
+    title: 'Новогодние сладкие подарки для школьников',
+    customer: 'Департамент образования Екатеринбурга',
+    region: 'Екатеринбург',
+    budget: 980000,
+    deadline: '2025-12-15',
+    status: 'ending-soon',
+    category: 'Детские подарки',
+    participantsCount: 6,
+  },
+  {
+    id: 6,
+    title: 'Премиальные новогодние подарки для VIP-клиентов',
+    customer: 'ПАО "ВТБ"',
+    region: 'Москва',
+    budget: 4500000,
+    deadline: '2025-12-28',
+    status: 'active',
+    category: 'Премиум сегмент',
+    participantsCount: 10,
+  },
+];
 
 export default function Index() {
-  const [coins, setCoins] = useState(0);
-  const [energy, setEnergy] = useState(1000);
-  const [maxEnergy, setMaxEnergy] = useState(1000);
-  const [clickPower, setClickPower] = useState(1);
-  const [autoEarn, setAutoEarn] = useState(0);
-  const [popularity, setPopularity] = useState(0);
-  
-  const [clickUpgradeCost, setClickUpgradeCost] = useState(100);
-  const [autoUpgradeCost, setAutoUpgradeCost] = useState(500);
-  const [energyUpgradeCost, setEnergyUpgradeCost] = useState(300);
-  
-  const [clickEffect, setClickEffect] = useState<{x: number, y: number, id: number}[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [minBudget, setMinBudget] = useState('');
+  const [maxBudget, setMaxBudget] = useState('');
 
-  useEffect(() => {
-    if (autoEarn > 0) {
-      const interval = setInterval(() => {
-        setCoins(prev => prev + autoEarn);
-        setPopularity(prev => prev + autoEarn * 0.1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [autoEarn]);
+  const filteredTenders = mockTenders.filter((tender) => {
+    const matchesSearch = tender.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tender.customer.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRegion = selectedRegion === 'all' || tender.region === selectedRegion;
+    const matchesCategory = selectedCategory === 'all' || tender.category === selectedCategory;
+    const matchesMinBudget = !minBudget || tender.budget >= parseInt(minBudget);
+    const matchesMaxBudget = !maxBudget || tender.budget <= parseInt(maxBudget);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setEnergy(prev => Math.min(prev + 1, maxEnergy));
-    }, 180000);
-    return () => clearInterval(interval);
-  }, [maxEnergy]);
+    return matchesSearch && matchesRegion && matchesCategory && matchesMinBudget && matchesMaxBudget;
+  });
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (energy >= 1) {
-      setCoins(prev => prev + clickPower);
-      setEnergy(prev => prev - 1);
-      setPopularity(prev => prev + 0.1);
-      
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const id = Date.now();
-      setClickEffect(prev => [...prev, {x, y, id}]);
-      setTimeout(() => {
-        setClickEffect(prev => prev.filter(effect => effect.id !== id));
-      }, 1000);
+  const getStatusBadge = (status: Tender['status']) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500 hover:bg-green-600">Активен</Badge>;
+      case 'ending-soon':
+        return <Badge className="bg-orange-500 hover:bg-orange-600">Скоро закроется</Badge>;
+      case 'closed':
+        return <Badge className="bg-gray-500 hover:bg-gray-600">Закрыт</Badge>;
     }
   };
 
-  const upgradeClickPower = () => {
-    if (coins >= clickUpgradeCost) {
-      setCoins(prev => prev - clickUpgradeCost);
-      setClickPower(prev => prev + 1);
-      setClickUpgradeCost(prev => Math.floor(prev * 1.5));
-      toast.success('Сила клика увеличена! 💪');
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const upgradeAutoEarn = () => {
-    if (coins >= autoUpgradeCost) {
-      setCoins(prev => prev - autoUpgradeCost);
-      setAutoEarn(prev => prev + 1);
-      setAutoUpgradeCost(prev => Math.floor(prev * 1.5));
-      toast.success('Пассивный доход увеличен! 🤖');
-    }
-  };
-
-  const upgradeEnergy = () => {
-    if (coins >= energyUpgradeCost) {
-      setCoins(prev => prev - energyUpgradeCost);
-      setMaxEnergy(prev => prev + 500);
-      setEnergy(prev => prev + 500);
-      setEnergyUpgradeCost(prev => Math.floor(prev * 1.5));
-      toast.success('Максимальная энергия увеличена! ⚡');
-    }
-  };
-
-  const buyEnergy = () => {
-    if (coins >= 50) {
-      setCoins(prev => prev - 50);
-      setEnergy(prev => Math.min(prev + 100, maxEnergy));
-      toast.success('Энергия куплена! ⚡');
-    }
-  };
+  const totalBudget = filteredTenders.reduce((sum, t) => sum + t.budget, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#221F26] to-[#1A1F2C] text-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(155,135,245,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(155,135,245,0.1)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F0FB] via-white to-[#FDE1D3]">
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[#ea384c]/10 to-transparent pointer-events-none" />
       
-      <div className="absolute top-20 left-10 w-96 h-96 bg-[#9b87f5] rounded-full filter blur-[120px] opacity-20 animate-pulse" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#D946EF] rounded-full filter blur-[120px] opacity-20 animate-pulse" style={{animationDelay: '1s'}} />
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+        <header className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Icon name="Gift" size={48} className="text-[#ea384c]" />
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#ea384c] to-[#F97316] bg-clip-text text-transparent">
+              Тендеры на Новогодние Подарки
+            </h1>
+          </div>
+          <p className="text-lg text-gray-600">
+            Поиск государственных и корпоративных закупок новогодних подарков по всей России
+          </p>
+        </header>
 
-      <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl">
+        <Card className="p-6 mb-8 shadow-lg border-2 border-[#ea384c]/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="lg:col-span-2">
+              <div className="relative">
+                <Icon name="Search" size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Поиск по названию или заказчику..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+              <SelectTrigger>
+                <SelectValue placeholder="Регион" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все регионы</SelectItem>
+                <SelectItem value="Москва">Москва</SelectItem>
+                <SelectItem value="Санкт-Петербург">Санкт-Петербург</SelectItem>
+                <SelectItem value="Краснодар">Краснодар</SelectItem>
+                <SelectItem value="Екатеринбург">Екатеринбург</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Категория" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все категории</SelectItem>
+                <SelectItem value="Детские подарки">Детские подарки</SelectItem>
+                <SelectItem value="Корпоративные подарки">Корпоративные подарки</SelectItem>
+                <SelectItem value="Социальные программы">Социальные программы</SelectItem>
+                <SelectItem value="Премиум сегмент">Премиум сегмент</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button className="bg-gradient-to-r from-[#ea384c] to-[#F97316] hover:from-[#d62f3f] hover:to-[#e8670a]">
+              <Icon name="Filter" size={20} className="mr-2" />
+              Применить
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <Input
+              type="number"
+              placeholder="Минимальный бюджет (₽)"
+              value={minBudget}
+              onChange={(e) => setMinBudget(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder="Максимальный бюджет (₽)"
+              value={maxBudget}
+              onChange={(e) => setMaxBudget(e.target.value)}
+            />
+          </div>
+        </Card>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-black/40 border-[#9b87f5] backdrop-blur-sm p-6 shadow-[0_0_20px_rgba(155,135,245,0.3)]">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#9b87f5] to-[#D946EF] flex items-center justify-center shadow-[0_0_20px_rgba(155,135,245,0.5)]">
-                <Icon name="Coins" size={24} className="text-white" />
+          <Card className="p-6 bg-gradient-to-br from-[#ea384c] to-[#F97316] text-white shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <Icon name="FileText" size={32} />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Монеты</p>
-                <p className="text-2xl font-bold text-[#9b87f5]">{Math.floor(coins)}</p>
+                <p className="text-sm opacity-90">Найдено тендеров</p>
+                <p className="text-3xl font-bold">{filteredTenders.length}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="bg-black/40 border-[#0EA5E9] backdrop-blur-sm p-6 shadow-[0_0_20px_rgba(14,165,233,0.3)]">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0EA5E9] to-[#9b87f5] flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.5)]">
-                <Icon name="Zap" size={24} className="text-white" />
+          <Card className="p-6 bg-gradient-to-br from-[#0EA5E9] to-[#9b87f5] text-white shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <Icon name="DollarSign" size={32} />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Энергия</p>
-                <p className="text-2xl font-bold text-[#0EA5E9]">{Math.floor(energy)}/{maxEnergy}</p>
+                <p className="text-sm opacity-90">Общий бюджет</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalBudget)}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="bg-black/40 border-[#D946EF] backdrop-blur-sm p-6 shadow-[0_0_20px_rgba(217,70,239,0.3)]">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D946EF] to-[#9b87f5] flex items-center justify-center shadow-[0_0_20px_rgba(217,70,239,0.5)]">
-                <Icon name="TrendingUp" size={24} className="text-white" />
+          <Card className="p-6 bg-gradient-to-br from-[#F97316] to-[#ea384c] text-white shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <Icon name="Users" size={32} />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Популярность</p>
-                <p className="text-2xl font-bold text-[#D946EF]">{Math.floor(popularity)}</p>
+                <p className="text-sm opacity-90">Всего участников</p>
+                <p className="text-3xl font-bold">{filteredTenders.reduce((sum, t) => sum + t.participantsCount, 0)}</p>
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4">
-            <h2 className="text-2xl font-bold text-[#9b87f5] mb-4 flex items-center gap-2">
-              <Icon name="Sparkles" size={24} />
-              Апгрейды
-            </h2>
-
-            <Card className="bg-black/40 border-[#9b87f5] backdrop-blur-sm p-4 hover:shadow-[0_0_30px_rgba(155,135,245,0.4)] transition-all">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-[#9b87f5]">Сила клика</h3>
-                  <p className="text-sm text-gray-400">+{clickPower} за клик</p>
-                </div>
-                <Icon name="MousePointerClick" size={24} className="text-[#9b87f5]" />
-              </div>
-              <Button 
-                onClick={upgradeClickPower} 
-                disabled={coins < clickUpgradeCost}
-                className="w-full bg-gradient-to-r from-[#9b87f5] to-[#7E69AB] hover:from-[#7E69AB] hover:to-[#9b87f5] border-0"
-              >
-                <Icon name="ArrowUp" size={16} className="mr-2" />
-                {clickUpgradeCost} монет
-              </Button>
-            </Card>
-
-            <Card className="bg-black/40 border-[#D946EF] backdrop-blur-sm p-4 hover:shadow-[0_0_30px_rgba(217,70,239,0.4)] transition-all">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-[#D946EF]">Автодоход</h3>
-                  <p className="text-sm text-gray-400">+{autoEarn}/сек</p>
-                </div>
-                <Icon name="Bot" size={24} className="text-[#D946EF]" />
-              </div>
-              <Button 
-                onClick={upgradeAutoEarn} 
-                disabled={coins < autoUpgradeCost}
-                className="w-full bg-gradient-to-r from-[#D946EF] to-[#9b87f5] hover:from-[#9b87f5] hover:to-[#D946EF] border-0"
-              >
-                <Icon name="ArrowUp" size={16} className="mr-2" />
-                {autoUpgradeCost} монет
-              </Button>
-            </Card>
-
-            <Card className="bg-black/40 border-[#0EA5E9] backdrop-blur-sm p-4 hover:shadow-[0_0_30px_rgba(14,165,233,0.4)] transition-all">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-[#0EA5E9]">Макс. энергия</h3>
-                  <p className="text-sm text-gray-400">{maxEnergy} единиц</p>
-                </div>
-                <Icon name="Battery" size={24} className="text-[#0EA5E9]" />
-              </div>
-              <Button 
-                onClick={upgradeEnergy} 
-                disabled={coins < energyUpgradeCost}
-                className="w-full bg-gradient-to-r from-[#0EA5E9] to-[#9b87f5] hover:from-[#9b87f5] hover:to-[#0EA5E9] border-0"
-              >
-                <Icon name="ArrowUp" size={16} className="mr-2" />
-                {energyUpgradeCost} монет
-              </Button>
-            </Card>
-
-            <Card className="bg-black/40 border-[#F97316] backdrop-blur-sm p-4 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] transition-all">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-[#F97316]">Купить энергию</h3>
-                  <p className="text-sm text-gray-400">+100 энергии</p>
-                </div>
-                <Icon name="ShoppingCart" size={24} className="text-[#F97316]" />
-              </div>
-              <Button 
-                onClick={buyEnergy} 
-                disabled={coins < 50}
-                className="w-full bg-gradient-to-r from-[#F97316] to-[#D946EF] hover:from-[#D946EF] hover:to-[#F97316] border-0"
-              >
-                <Icon name="Zap" size={16} className="mr-2" />
-                50 монет
-              </Button>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-2">
-            <Card className="bg-black/40 border-[#9b87f5] backdrop-blur-sm p-8 shadow-[0_0_40px_rgba(155,135,245,0.3)] h-full flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#9b87f5]/10 via-transparent to-[#D946EF]/10" />
-              
-              <h2 className="text-3xl font-bold text-center mb-4 relative z-10 bg-gradient-to-r from-[#9b87f5] to-[#D946EF] bg-clip-text text-transparent">
-                КИБЕРХОМЯК
-              </h2>
-              
-              <div className="relative mb-6">
-                <div 
-                  className="text-[200px] cursor-pointer select-none transition-transform hover:scale-110 active:scale-95 relative z-10"
-                  onClick={handleClick}
-                  style={{
-                    filter: 'drop-shadow(0 0 30px rgba(155, 135, 245, 0.6))',
-                  }}
-                >
-                  🐹
-                </div>
-                
-                {clickEffect.map(effect => (
-                  <div
-                    key={effect.id}
-                    className="absolute text-2xl font-bold text-[#9b87f5] pointer-events-none animate-fade-out"
-                    style={{
-                      left: effect.x,
-                      top: effect.y,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                  >
-                    +{clickPower}
+        <div className="space-y-4">
+          {filteredTenders.map((tender) => (
+            <Card key={tender.id} className="p-6 hover:shadow-xl transition-shadow border-l-4 border-l-[#ea384c]">
+              <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Icon name="Gift" size={24} className="text-[#ea384c] mt-1 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">{tender.title}</h3>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {getStatusBadge(tender.status)}
+                        <Badge variant="outline" className="border-[#0EA5E9] text-[#0EA5E9]">
+                          {tender.category}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                ))}
-                
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[220px] h-[220px] rounded-full border-4 border-[#9b87f5]/30 animate-[ping_2s_ease-in-out_infinite]" />
-                </div>
-              </div>
 
-              <div className="w-full max-w-md space-y-4 relative z-10">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm text-gray-400">Энергия</span>
-                    <span className="text-sm font-bold text-[#0EA5E9]">{Math.floor(energy)}/{maxEnergy}</span>
-                  </div>
-                  <Progress value={(energy / maxEnergy) * 100} className="h-3 bg-gray-800 [&>div]:bg-gradient-to-r [&>div]:from-[#0EA5E9] [&>div]:to-[#9b87f5] shadow-[0_0_10px_rgba(14,165,233,0.5)]" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-black/60 p-4 rounded-lg border border-[#9b87f5]/30">
-                    <p className="text-sm text-gray-400 mb-1">Клик</p>
-                    <p className="text-2xl font-bold text-[#9b87f5]">+{clickPower}</p>
-                  </div>
-                  <div className="bg-black/60 p-4 rounded-lg border border-[#D946EF]/30">
-                    <p className="text-sm text-gray-400 mb-1">В секунду</p>
-                    <p className="text-2xl font-bold text-[#D946EF]">+{autoEarn}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Icon name="Building2" size={16} className="text-gray-400" />
+                      <span><strong>Заказчик:</strong> {tender.customer}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon name="MapPin" size={16} className="text-gray-400" />
+                      <span><strong>Регион:</strong> {tender.region}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon name="Calendar" size={16} className="text-gray-400" />
+                      <span><strong>Дедлайн:</strong> {new Date(tender.deadline).toLocaleDateString('ru-RU')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon name="Users" size={16} className="text-gray-400" />
+                      <span><strong>Участников:</strong> {tender.participantsCount}</span>
+                    </div>
                   </div>
                 </div>
+
+                <div className="flex flex-col items-end justify-between gap-4 md:min-w-[200px]">
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600 mb-1">Бюджет</p>
+                    <p className="text-2xl font-bold text-[#ea384c]">{formatCurrency(tender.budget)}</p>
+                  </div>
+                  <Button className="w-full bg-gradient-to-r from-[#ea384c] to-[#F97316] hover:from-[#d62f3f] hover:to-[#e8670a]">
+                    <Icon name="ExternalLink" size={16} className="mr-2" />
+                    Подробнее
+                  </Button>
+                </div>
               </div>
             </Card>
-          </div>
+          ))}
         </div>
+
+        {filteredTenders.length === 0 && (
+          <Card className="p-12 text-center">
+            <Icon name="SearchX" size={64} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Тендеры не найдены</h3>
+            <p className="text-gray-600">Попробуйте изменить параметры поиска</p>
+          </Card>
+        )}
       </div>
     </div>
   );
