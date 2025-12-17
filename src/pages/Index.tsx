@@ -11,6 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Tender {
   id: number;
@@ -99,6 +106,8 @@ export default function Index() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
+  const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTenders = mockTenders.filter((tender) => {
     const matchesSearch = tender.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -292,7 +301,13 @@ export default function Index() {
                     <p className="text-sm text-gray-600 mb-1">Бюджет</p>
                     <p className="text-2xl font-bold text-[#ea384c]">{formatCurrency(tender.budget)}</p>
                   </div>
-                  <Button className="w-full bg-gradient-to-r from-[#ea384c] to-[#F97316] hover:from-[#d62f3f] hover:to-[#e8670a]">
+                  <Button 
+                    onClick={() => {
+                      setSelectedTender(tender);
+                      setIsDialogOpen(true);
+                    }}
+                    className="w-full bg-gradient-to-r from-[#ea384c] to-[#F97316] hover:from-[#d62f3f] hover:to-[#e8670a]"
+                  >
                     <Icon name="ExternalLink" size={16} className="mr-2" />
                     Подробнее
                   </Button>
@@ -310,6 +325,106 @@ export default function Index() {
           </Card>
         )}
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedTender && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-gray-800 pr-8">
+                  {selectedTender.title}
+                </DialogTitle>
+                <DialogDescription>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {getStatusBadge(selectedTender.status)}
+                    <Badge variant="outline" className="border-[#0EA5E9] text-[#0EA5E9]">
+                      {selectedTender.category}
+                    </Badge>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="p-4 bg-gradient-to-br from-[#ea384c] to-[#F97316] text-white">
+                    <p className="text-sm opacity-90 mb-1">Бюджет тендера</p>
+                    <p className="text-3xl font-bold">{formatCurrency(selectedTender.budget)}</p>
+                  </Card>
+                  <Card className="p-4 bg-gradient-to-br from-[#0EA5E9] to-[#9b87f5] text-white">
+                    <p className="text-sm opacity-90 mb-1">Участников</p>
+                    <p className="text-3xl font-bold">{selectedTender.participantsCount}</p>
+                  </Card>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                    <Icon name="Building2" size={20} className="text-[#ea384c] mt-1" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Заказчик</p>
+                      <p className="text-gray-600">{selectedTender.customer}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                    <Icon name="MapPin" size={20} className="text-[#ea384c] mt-1" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Регион</p>
+                      <p className="text-gray-600">{selectedTender.region}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                    <Icon name="Calendar" size={20} className="text-[#ea384c] mt-1" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Срок подачи заявок</p>
+                      <p className="text-gray-600">{new Date(selectedTender.deadline).toLocaleDateString('ru-RU', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                    <Icon name="FileText" size={20} className="text-[#ea384c] mt-1" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Описание закупки</p>
+                      <p className="text-gray-600">
+                        Закупка новогодних подарков согласно требованиям заказчика. 
+                        Подарки должны соответствовать всем стандартам качества и безопасности.
+                        Поставка осуществляется в регион {selectedTender.region} в срок до {new Date(selectedTender.deadline).toLocaleDateString('ru-RU')}.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                    <Icon name="Package" size={20} className="text-[#ea384c] mt-1" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Требования к подарку</p>
+                      <ul className="text-gray-600 list-disc list-inside space-y-1">
+                        <li>Соответствие ГОСТам и СанПиН</li>
+                        <li>Сертификаты качества на все товары</li>
+                        <li>Упаковка с новогодним дизайном</li>
+                        <li>Гарантия возврата бракованной продукции</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button className="flex-1 bg-gradient-to-r from-[#ea384c] to-[#F97316] hover:from-[#d62f3f] hover:to-[#e8670a]">
+                    <Icon name="Send" size={16} className="mr-2" />
+                    Подать заявку
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setIsDialogOpen(false)}>
+                    Закрыть
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
